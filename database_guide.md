@@ -25,29 +25,47 @@ This guide explains how to connect your **AuraCal Calendar** to a **Google Sheet
 ```javascript
 // Google Apps Script to read and write AuraCal checklist and notes
 function doGet(e) {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Data");
-  var rows = sheet.getDataRange().getValues();
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName("Data");
+  
+  // Robust check: if sheet "Data" doesn't exist, use the first tab and rename it
+  if (!sheet) {
+    sheet = ss.getSheets()[0];
+    sheet.setName("Data");
+  }
+  
+  var rows;
+  try {
+    rows = sheet.getDataRange().getValues();
+  } catch (err) {
+    // Return empty database structure if sheet is completely blank
+    return ContentService.createTextOutput(JSON.stringify({}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  
   var data = {};
   
   // Skip the header row (i = 1)
-  for (var i = 1; i < rows.length; i++) {
-    var dateKey = rows[i][0];
-    var diary = rows[i][1];
-    var one = rows[i][2];
-    var two = rows[i][3];
-    var thought = rows[i][4];
-    var notes = rows[i][5];
-    
-    if (dateKey) {
-      data[dateKey] = { 
-        notes: notes ? String(notes) : "", 
-        checkboxes: {
-          diary: diary === 1 || diary === true,
-          one: one === 1 || one === true,
-          two: two === 1 || two === true,
-          thought: thought === 1 || thought === true
-        }
-      };
+  if (rows && rows.length > 1) {
+    for (var i = 1; i < rows.length; i++) {
+      var dateKey = rows[i][0];
+      var diary = rows[i][1];
+      var one = rows[i][2];
+      var two = rows[i][3];
+      var thought = rows[i][4];
+      var notes = rows[i][5];
+      
+      if (dateKey) {
+        data[dateKey] = { 
+          notes: notes ? String(notes) : "", 
+          checkboxes: {
+            diary: diary === 1 || diary === true,
+            one: one === 1 || one === true,
+            two: two === 1 || two === true,
+            thought: thought === 1 || thought === true
+          }
+        };
+      }
     }
   }
   
@@ -56,31 +74,42 @@ function doGet(e) {
 }
 
 function doPost(e) {
-  var params = JSON.parse(e.postData.contents);
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Data");
-  
-  // Clear sheet and rewrite headers
-  sheet.clearContents();
-  sheet.appendRow(["Date Key (YYYY-MM-DD)", "Diary Done", "Task 1 Done", "Task 2 Done", "Decision Done", "Notes Content"]);
-  
-  // Save calendar data row-by-row
-  for (var dateKey in params) {
-    if (params.hasOwnProperty(dateKey)) {
-      var item = params[dateKey];
-      var cb = item.checkboxes || {};
-      sheet.appendRow([
-        dateKey,
-        cb.diary ? 1 : 0,
-        cb.one ? 1 : 0,
-        cb.two ? 1 : 0,
-        cb.thought ? 1 : 0,
-        item.notes || ""
-      ]);
+  try {
+    var params = JSON.parse(e.postData.contents);
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("Data");
+    
+    if (!sheet) {
+      sheet = ss.getSheets()[0];
+      sheet.setName("Data");
     }
+    
+    // Clear sheet and rewrite headers
+    sheet.clearContents();
+    sheet.appendRow(["Date Key (YYYY-MM-DD)", "Diary Done", "Task 1 Done", "Task 2 Done", "Decision Done", "Notes Content"]);
+    
+    // Save calendar data row-by-row
+    for (var dateKey in params) {
+      if (params.hasOwnProperty(dateKey)) {
+        var item = params[dateKey];
+        var cb = item.checkboxes || {};
+        sheet.appendRow([
+          dateKey,
+          cb.diary ? 1 : 0,
+          cb.one ? 1 : 0,
+          cb.two ? 1 : 0,
+          cb.thought ? 1 : 0,
+          item.notes || ""
+        ]);
+      }
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({ status: "success" }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ status: "error", message: err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
   }
-  
-  return ContentService.createTextOutput(JSON.stringify({ status: "success" }))
-    .setMimeType(ContentService.MimeType.JSON);
 }
 ```
 

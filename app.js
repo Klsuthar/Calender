@@ -6,7 +6,7 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     // Google Sheets Cloud API URL
-    const SHEET_URL = "https://script.google.com/macros/s/AKfycbwbBT63utbkGLUDwraD62n3p9FT5fr5HzR2hMYKd0V9kxUpAVlRLsDzSdIM7urVUDd5/exec";
+    const SHEET_URL = "https://script.google.com/macros/s/AKfycbwwYba9NdUjEd3selhJCPpMzORktv8Y7tuxC5YZCSmug7C-Zv0CatLobOyKRGFlgrGQ/exec";
 
     // ==========================================================================
     // State Variables
