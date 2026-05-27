@@ -90,7 +90,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (statusText) statusText.textContent = "Database: Fetching Cloud...";
 
             const response = await fetch(SHEET_URL);
-            calendarData = await response.json();
+            const cloudData = await response.json();
+
+            if (cloudData && cloudData.error) {
+                throw new Error("Apps Script Error: " + cloudData.error);
+            }
+
+            calendarData = cloudData || {};
 
             if (statusText) statusText.textContent = "Database: Cloud (Google Sheets)";
         } catch (e) {

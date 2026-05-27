@@ -965,12 +965,12 @@ body.dark-theme .file-box {
 }
 
 /* ==========================================================================
-   Toast Notification (Top-Right Glass Plate)
+   Toast Notification (Bottom-Left Glass Plate)
    ========================================================================== */
 .toast {
     position: fixed;
-    top: 2rem;
-    right: 2rem;
+    bottom: 2rem;
+    left: 2rem;
     background-color: var(--bg-modal);
     border: 1px solid var(--border-color);
     color: var(--text-primary);
@@ -983,7 +983,7 @@ body.dark-theme .file-box {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    transform: translateY(-20px);
+    transform: translateY(20px);
     opacity: 0;
     pointer-events: none;
     transition: transform var(--transition-normal), opacity var(--transition-normal);
