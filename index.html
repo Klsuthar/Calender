@@ -193,34 +193,33 @@
     <div id="db-guide-modal" class="modal-overlay">
         <div class="modal-content glassmorphism guide-modal">
             <header class="modal-header">
-                <h3>Cloud Database Integration Guide</h3>
+                <h3>Google Sheets Cloud Integration</h3>
                 <button class="close-btn" id="close-guide-modal">&times;</button>
             </header>
             <div class="modal-body markdown-body">
-                <p>By default, AuraCal saves all data instantly to your browser's local storage (LocalStorage). This means data is 100% private and offline.</p>
+                <p>By default, AuraCal saves all data instantly to your browser's local storage (LocalStorage), keeping it private and offline.</p>
                 
-                <h4>Want to sync across devices or databases?</h4>
-                <p>You can connect Firebase, Google Sheets, or Supabase. A complete integration guide has been generated for you in the repository:</p>
+                <h4>Want to sync with Google Sheets?</h4>
+                <p>You can connect a Google Spreadsheet to save your checklist tasks and notes. A detailed step-by-step tutorial is available in your repository:</p>
                 <div class="file-box">
                     <code>database_guide.md</code>
                 </div>
                 
-                <p><strong>Quick Firebase Setup Example:</strong></p>
-                <pre><code>// Initialize Firebase in app.js
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+                <p><strong>Quick Google Apps Script Code Preview:</strong></p>
+                <pre><code>// Add inside Google Sheet extensions &gt; Apps Script:
+function doGet(e) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Data");
+  var rows = sheet.getDataRange().getValues();
+  // ... reads rows and returns calendar JSON
+}
 
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
-  projectId: "YOUR_PROJECT"
-};
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-</code></pre>
+function doPost(e) {
+  var params = JSON.parse(e.postData.contents);
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Data");
+  // ... writes date keys, checkboxes and notes to sheet
+}</code></pre>
                 
-                <p>Please check the file <code>database_guide.md</code> in this workspace for a complete tutorial, code templates, and step-by-step instructions on connecting to <strong>Google Sheets</strong> or <strong>Firebase Realtime Database</strong>!</p>
+                <p>Please check the file <code>database_guide.md</code> in this workspace for the full Apps Script code, deployment instructions, and the simple JavaScript functions to replace in <code>app.js</code>!</p>
             </div>
             <div class="modal-footer">
                 <button id="close-guide-footer-btn" class="btn btn-primary">Understood</button>

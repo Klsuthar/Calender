@@ -1,31 +1,35 @@
-# Guide: Connecting a Free Database to AuraCal
+# Google Sheets Database Integration Guide for AuraCal
 
-By default, AuraCal uses **LocalStorage**, which is a 100% free, private, and offline database built into your browser. 
-
-If you want to sync your notes and checklist statuses across different devices or save them online, you can easily connect a free cloud database. Below are two simple options: **Google Sheets** and **Firebase**.
+This guide explains how to connect your **AuraCal Calendar** to a **Google Sheet** so that your checklist status and notes are synced to the cloud and accessible from any device.
 
 ---
 
-## Option 1: Google Sheets as a Database (100% Free & No Account Signup Needed)
-You can use Google Sheets to view, edit, and store your calendar data.
+## Why Google Sheets?
+- **100% Free**: No subscription or card setup required.
+- **Easy Setup**: Uses Google Apps Script to act as a secure API.
+- **Excel/Data Friendly**: You can view and edit your checklist data directly in your browser.
 
-### Step 1: Create a Google Sheet
-1. Open [Google Sheets](https://sheets.google.com) and create a **Blank Spreadsheet**.
-2. Name your spreadsheet (e.g., `AuraCal Data`).
-3. Rename the first tab/sheet to `Data`.
+---
 
-### Step 2: Add Google Apps Script
-1. In the top menu of your Google Sheet, go to **Extensions** > **Apps Script**.
-2. Delete any code in the editor and paste the following Apps Script code:
+## Step-by-Step Setup
+
+### Step 1: Create Your Google Sheet
+1. Open [Google Sheets](https://sheets.google.com) and click **Blank Spreadsheet**.
+2. Name your spreadsheet (e.g., `AuraCal Cloud Database`).
+3. Rename the first sheet tab (at the bottom-left) to **`Data`** (with a capital D).
+
+### Step 2: Add the Google Apps Script
+1. In the Google Sheets menu, click **Extensions** > **Apps Script**.
+2. Delete any default code in the editor (`code.gs`) and paste the following Apps Script code:
 
 ```javascript
-// Google Apps Script to read and write Calendar Data
+// Google Apps Script to read and write AuraCal checklist and notes
 function doGet(e) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Data");
   var rows = sheet.getDataRange().getValues();
   var data = {};
   
-  // Skip header row
+  // Skip the header row (i = 1)
   for (var i = 1; i < rows.length; i++) {
     var dateKey = rows[i][0];
     var diary = rows[i][1];
@@ -33,9 +37,10 @@ function doGet(e) {
     var two = rows[i][3];
     var thought = rows[i][4];
     var notes = rows[i][5];
+    
     if (dateKey) {
       data[dateKey] = { 
-        notes: notes, 
+        notes: notes ? String(notes) : "", 
         checkboxes: {
           diary: diary === 1 || diary === true,
           one: one === 1 || one === true,
@@ -54,11 +59,11 @@ function doPost(e) {
   var params = JSON.parse(e.postData.contents);
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Data");
   
-  // Clear existing content except headers
+  // Clear sheet and rewrite headers
   sheet.clearContents();
-  sheet.appendRow(["Date", "Diary", "Task 1", "Task 2", "Decision", "Notes"]);
+  sheet.appendRow(["Date Key (YYYY-MM-DD)", "Diary Done", "Task 1 Done", "Task 2 Done", "Decision Done", "Notes Content"]);
   
-  // Write new data
+  // Save calendar data row-by-row
   for (var dateKey in params) {
     if (params.hasOwnProperty(dateKey)) {
       var item = params[dateKey];
@@ -79,124 +84,70 @@ function doPost(e) {
 }
 ```
 
-3. Click the **Save** icon (diskette).
-4. Click the **Deploy** button > **New deployment**.
-5. Select type: **Web app**.
-6. Set the settings:
-   - **Execute as**: Me (your email).
-   - **Who has access**: Anyone.
-7. Click **Deploy**.
-8. Copy the **Web App URL** generated (it will look like `https://script.google.com/macros/s/.../exec`).
+3. Click the **Save** icon (floppy disk) at the top of the editor.
 
-### Step 3: Update `app.js` to use your Google Sheets URL
-Open `app.js` and update the `loadDatabase` and `saveDatabase` functions to communicate with this URL using `fetch`. Replace `YOUR_SHEET_URL` with your copied URL:
-
-```javascript
-const SHEET_URL = "YOUR_SHEET_URL";
-
-// Replace loadDatabase inside app.js:
-async function loadDatabase() {
-    try {
-        const response = await fetch(SHEET_URL);
-        calendarData = await response.json();
-    } catch (e) {
-        console.error('Error fetching from Google Sheets:', e);
-        // Fallback to localStorage if offline
-        const local = localStorage.getItem('auracal_data');
-        calendarData = local ? JSON.parse(local) : {};
-    }
-    updateStats();
-    renderCalendar();
-}
-
-// Replace saveDatabase inside app.js:
-async function saveDatabase() {
-    try {
-        // Save to localStorage as local backup
-        localStorage.setItem('auracal_data', JSON.stringify(calendarData));
-        updateStats();
-
-        // Send to Google Sheets
-        await fetch(SHEET_URL, {
-            method: 'POST',
-            mode: 'no-cors', // Required for Google Web Apps without custom CORS
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(calendarData)
-        });
-        showToast('Synced to Google Sheets!');
-    } catch (e) {
-        console.error('Error saving to Google Sheets:', e);
-        showToast('Saved locally, but failed to sync to cloud.', 'danger');
-    }
-}
-```
+### Step 3: Deploy the Script as a Web App
+1. Click the **Deploy** button at the top-right, and select **New deployment**.
+2. Click the gear icon next to "Select type" and choose **Web app**.
+3. Configure the deployment settings:
+   - **Description**: `AuraCal API Link`
+   - **Execute as**: **`Me (your-email@gmail.com)`**
+   - **Who has access**: **`Anyone`** (This allows the calendar app to fetch/post data without prompting google login credentials).
+4. Click **Deploy**.
+5. *If prompted*, click **Authorize Access**, choose your Google account, click **Advanced** at the bottom, and click **Go to Untitled project (unsafe)** to approve scopes.
+6. Once deployed, copy the **`Web app URL`** (it will look like: `https://script.google.com/macros/s/XXXXX/exec`).
 
 ---
 
-## Option 2: Firebase Realtime Database (Real-time Cloud Sync)
-Firebase provides a free tier that is excellent for instant, real-time syncing.
+### Step 4: Integrate the URL into `app.js`
 
-### Step 1: Create a Firebase Project
-1. Go to [Firebase Console](https://console.firebase.google.com/).
-2. Click **Add Project** and follow the steps.
-3. In the project dashboard, click **Build** > **Realtime Database** > **Create Database**.
-4. Choose database location and select **Start in test mode** (allows read/writes for testing. For production, secure it with Auth rules).
+Open `app.js` and apply these changes:
 
-### Step 2: Connect Firebase to AuraCal
-Add the Firebase Web SDK to the top of your `app.js` file (change `app.js` imports to script type="module" in index.html):
-
-1. Change `index.html` script tag to module:
-   ```html
-   <script type="module" src="app.js"></script>
+1. Add your Web App URL at the very top of `app.js` (line 6):
+   ```javascript
+   const SHEET_URL = "YOUR_COPIED_GOOGLE_SHEETS_WEB_APP_URL";
    ```
 
-2. Replace the start of your `app.js` with the Firebase initialization and listeners:
+2. Replace the `loadDatabase` function in `app.js` with this async code:
+   ```javascript
+   async function loadDatabase() {
+       try {
+           const response = await fetch(SHEET_URL);
+           calendarData = await response.json();
+       } catch (e) {
+           console.error('Error fetching from Google Sheets:', e);
+           // Fallback to local storage if offline
+           const local = localStorage.getItem('auracal_data');
+           calendarData = local ? JSON.parse(local) : {};
+       }
+       updateStats(currentYear, currentMonth);
+       renderCalendar();
+   }
+   ```
 
-```javascript
-// Import Firebase SDKs
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+3. Replace the `saveDatabase` function in `app.js` with this async code:
+   ```javascript
+   async function saveDatabase() {
+       try {
+           // Save local backup
+           localStorage.setItem('auracal_data', JSON.stringify(calendarData));
+           updateStats(currentYear, currentMonth);
 
-// Your Firebase Config (from Firebase Console project settings)
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  databaseURL: "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-};
+           // Sync with Google Sheets
+           await fetch(SHEET_URL, {
+               method: 'POST',
+               mode: 'no-cors', // Avoid cross-origin script blocks
+               headers: {
+                   'Content-Type': 'application/json',
+               },
+               body: JSON.stringify(calendarData)
+           });
+           showToast('Synced to Google Sheets!');
+       } catch (e) {
+           console.error('Error saving to Google Sheets:', e);
+           showToast('Saved locally, but failed to sync to cloud.', 'danger');
+       }
+   }
+   ```
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-const dbRef = ref(db, 'calendar_data');
-
-let calendarData = {};
-
-// Replace loadDatabase inside app.js:
-function loadDatabase() {
-    // Realtime sync: whenever database changes on Firebase, UI updates automatically!
-    onValue(dbRef, (snapshot) => {
-        const data = snapshot.val();
-        calendarData = data || {};
-        updateStats();
-        renderCalendar();
-    });
-}
-
-// Replace saveDatabase inside app.js:
-function saveDatabase() {
-    set(dbRef, calendarData)
-        .then(() => {
-            showToast('Changes saved to Firebase Cloud!');
-        })
-        .catch((error) => {
-            console.error('Firebase save error:', error);
-            showToast('Failed to save to cloud.', 'danger');
-        });
-}
-```
-
-Now you have a cloud database syncing your calendar automatically!
+Now, every time you check items or write notes in the calendar, the data will be securely saved into your Google Spreadsheet!

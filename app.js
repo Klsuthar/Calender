@@ -5,6 +5,9 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Google Sheets Cloud API URL
+    const SHEET_URL = "https://script.google.com/macros/s/AKfycbwbBT63utbkGLUDwraD62n3p9FT5fr5HzR2hMYKd0V9kxUpAVlRLsDzSdIM7urVUDd5/exec";
+
     // ==========================================================================
     // State Variables
     // ==========================================================================
@@ -80,25 +83,52 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================================================
     // Database Functions
     // ==========================================================================
-    function loadDatabase() {
+    async function loadDatabase() {
         try {
-            const data = localStorage.getItem('auracal_data');
-            calendarData = data ? JSON.parse(data) : {};
+            // Show loading status
+            const statusText = document.getElementById('storage-status-text');
+            if (statusText) statusText.textContent = "Database: Fetching Cloud...";
+
+            const response = await fetch(SHEET_URL);
+            calendarData = await response.json();
+
+            if (statusText) statusText.textContent = "Database: Cloud (Google Sheets)";
         } catch (e) {
-            console.error('Error loading data from localStorage:', e);
-            calendarData = {};
-            showToast('Failed to load database. Initialized empty calendar.', 'danger');
+            console.error('Error loading data from Google Sheets:', e);
+            // Fallback to localStorage
+            try {
+                const data = localStorage.getItem('auracal_data');
+                calendarData = data ? JSON.parse(data) : {};
+            } catch (err) {
+                calendarData = {};
+            }
+            const statusText = document.getElementById('storage-status-text');
+            if (statusText) statusText.textContent = "Database: LocalStorage (Offline)";
+            showToast('Loaded offline backup. Cloud sync failed.', 'danger');
         }
         updateStats(currentYear, currentMonth);
+        renderCalendar(); // Rerender to show loaded data
     }
 
-    function saveDatabase() {
+    async function saveDatabase() {
         try {
+            // Save local backup
             localStorage.setItem('auracal_data', JSON.stringify(calendarData));
             updateStats(currentYear, currentMonth);
+            
+            // Sync with Google Sheets
+            await fetch(SHEET_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(calendarData)
+            });
+            showToast('Synced to Google Sheets!');
         } catch (e) {
-            console.error('Error saving data to localStorage:', e);
-            showToast('Failed to save changes to storage.', 'danger');
+            console.error('Error saving data to Google Sheets:', e);
+            showToast('Saved locally, failed to sync online.', 'danger');
         }
     }
 
