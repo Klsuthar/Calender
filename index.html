@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chromatic Calendar - Custom Color & Notes Organizer</title>
+    <!-- Google Fonts: Plus Jakarta Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Premium Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="dark-theme">
+    <div class="app-container">
+        <!-- Sidebar for Controls (Responsive / Collapsible on Mobile) -->
+        <aside class="sidebar">
+            <div class="brand">
+                <i class="fa-solid fa-calendar-days brand-icon"></i>
+                <div class="brand-text">
+                    <h1>AuraCal</h1>
+                    <span>Personal Organizer</span>
+                </div>
+                <button id="close-menu-btn" class="btn-icon close-menu-btn" aria-label="Close Menu">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            
+            <div class="sidebar-section">
+                <h3>Quick Actions</h3>
+                <button id="today-btn" class="btn btn-secondary">
+                    <i class="fa-solid fa-calendar-day"></i> Today
+                </button>
+                <div class="theme-switcher">
+                    <span>Theme</span>
+                    <button id="theme-toggle" class="btn-icon" aria-label="Toggle Theme">
+                        <i class="fa-solid fa-sun icon-light"></i>
+                        <i class="fa-solid fa-moon icon-dark"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <h3>Data Sync & Backup</h3>
+                <p class="section-desc">Save offline to LocalStorage, or back up to files.</p>
+                <div class="backup-buttons">
+                    <button id="export-btn" class="btn btn-outline btn-sm">
+                        <i class="fa-solid fa-download"></i> Export JSON
+                    </button>
+                    <button id="import-trigger-btn" class="btn btn-outline btn-sm">
+                        <i class="fa-solid fa-upload"></i> Import JSON
+                    </button>
+                    <input type="file" id="import-file" accept=".json" style="display: none;">
+                </div>
+                <div class="db-status">
+                    <span class="status-dot online"></span>
+                    <span id="storage-status-text">Database: LocalStorage</span>
+                </div>
+                <a href="#db-guide-modal" id="db-guide-btn" class="guide-link">
+                    <i class="fa-solid fa-circle-info"></i> How to connect Cloud DB?
+                </a>
+            </div>
+            
+            <div class="sidebar-footer">
+                <p>&copy; 2026 AuraCal App</p>
+            </div>
+        </aside>
+
+        <!-- Main Calendar Area -->
+        <main class="main-content">
+            <!-- Header navigation -->
+            <header class="calendar-header">
+                <div class="nav-controls">
+                    <button id="menu-toggle-btn" class="btn btn-icon-round menu-toggle-btn" aria-label="Open Menu">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <button id="prev-month" class="btn btn-icon-round" aria-label="Previous Month">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </button>
+                    <div class="date-display-wrapper">
+                        <h2 id="month-year-display">May 2026</h2>
+                        <div class="jump-inputs">
+                            <select id="jump-month" class="form-select"></select>
+                            <select id="jump-year" class="form-select"></select>
+                        </div>
+                    </div>
+                    <button id="next-month" class="btn btn-icon-round" aria-label="Next Month">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
+                
+                <!-- Quick stats / filters -->
+                <div class="quick-stats">
+                    <div class="stat-badge">
+                        <span class="stat-val" id="pending-days-count">0</span>
+                        <span class="stat-label">Pending Days</span>
+                    </div>
+                    <div class="stat-badge">
+                        <span class="stat-val" id="month-completion-percentage">0%</span>
+                        <span class="stat-label">Month Progress</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Calendar Board -->
+            <div class="calendar-card">
+                <!-- Day Names Header -->
+                <div class="weekdays-grid">
+                    <div class="weekday">Sun</div>
+                    <div class="weekday">Mon</div>
+                    <div class="weekday">Tue</div>
+                    <div class="weekday">Wed</div>
+                    <div class="weekday">Thu</div>
+                    <div class="weekday">Fri</div>
+                    <div class="weekday">Sat</div>
+                </div>
+
+                <!-- Calendar Days Grid -->
+                <div id="calendar-days" class="days-grid">
+                    <!-- Days will be dynamically rendered by JavaScript -->
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Date Customization Modal -->
+    <div id="edit-modal" class="modal-overlay">
+        <div class="modal-content glassmorphism">
+            <header class="modal-header">
+                <h3 id="modal-date-title">Date Details</h3>
+                <button class="close-btn" id="close-modal">&times;</button>
+            </header>
+            
+            <form id="edit-form" class="modal-body">
+
+
+                <!-- Checklist Indicators -->
+                <div class="form-group">
+                    <label class="form-label">Checklist Indicators</label>
+                    <div class="modal-checklist">
+                        <label class="checklist-item">
+                            <input type="checkbox" id="modal-cb-diary" class="hidden-checkbox">
+                            <span class="checkbox-btn" title="Diary">
+                                <i class="fa-solid fa-book"></i>
+                                <span class="cb-label-text">Diary</span>
+                            </span>
+                        </label>
+                        <label class="checklist-item">
+                            <input type="checkbox" id="modal-cb-one" class="hidden-checkbox">
+                            <span class="checkbox-btn" title="Task 1">
+                                <span class="cb-num-badge">1</span>
+                                <span class="cb-label-text">Task 1</span>
+                            </span>
+                        </label>
+                        <label class="checklist-item">
+                            <input type="checkbox" id="modal-cb-two" class="hidden-checkbox">
+                            <span class="checkbox-btn" title="Task 2">
+                                <span class="cb-num-badge">2</span>
+                                <span class="cb-label-text">Task 2</span>
+                            </span>
+                        </label>
+                        <label class="checklist-item">
+                            <input type="checkbox" id="modal-cb-thought" class="hidden-checkbox">
+                            <span class="checkbox-btn" title="Decision / Thought">
+                                <i class="fa-solid fa-brain"></i>
+                                <span class="cb-label-text">Decision</span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Notes Section -->
+                <div class="form-group">
+                    <label for="notes-textarea" class="form-label">Notes for this Day</label>
+                    <textarea id="notes-textarea" class="form-textarea" placeholder="Add events, reminders, or general notes..." rows="5"></textarea>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" id="clear-day-btn" class="btn btn-danger-outline">
+                        <i class="fa-solid fa-trash-can"></i> Clear
+                    </button>
+                    <div class="modal-actions-right">
+                        <button type="button" id="cancel-modal-btn" class="btn btn-secondary">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Cloud Integration Guide Modal -->
+    <div id="db-guide-modal" class="modal-overlay">
+        <div class="modal-content glassmorphism guide-modal">
+            <header class="modal-header">
+                <h3>Cloud Database Integration Guide</h3>
+                <button class="close-btn" id="close-guide-modal">&times;</button>
+            </header>
+            <div class="modal-body markdown-body">
+                <p>By default, AuraCal saves all data instantly to your browser's local storage (LocalStorage). This means data is 100% private and offline.</p>
+                
+                <h4>Want to sync across devices or databases?</h4>
+                <p>You can connect Firebase, Google Sheets, or Supabase. A complete integration guide has been generated for you in the repository:</p>
+                <div class="file-box">
+                    <code>database_guide.md</code>
+                </div>
+                
+                <p><strong>Quick Firebase Setup Example:</strong></p>
+                <pre><code>// Initialize Firebase in app.js
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
+  projectId: "YOUR_PROJECT"
+};
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+</code></pre>
+                
+                <p>Please check the file <code>database_guide.md</code> in this workspace for a complete tutorial, code templates, and step-by-step instructions on connecting to <strong>Google Sheets</strong> or <strong>Firebase Realtime Database</strong>!</p>
+            </div>
+            <div class="modal-footer">
+                <button id="close-guide-footer-btn" class="btn btn-primary">Understood</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast hidden">
+        <span id="toast-message">Changes saved successfully!</span>
+    </div>
+
+    <!-- Sidebar mobile drawer backdrop overlay -->
+    <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
