@@ -44,11 +44,34 @@ function doGet(e) {
   }
   
   var data = {};
+  var timezone = ss.getSpreadsheetTimeZone();
+  
+  // Helper to format date keys uniformly as YYYY-MM-DD
+  function formatDateKey(dateVal) {
+    if (!dateVal) return "";
+    if (dateVal instanceof Date) {
+      return Utilities.formatDate(dateVal, timezone, "yyyy-MM-dd");
+    }
+    var str = String(dateVal).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+      return str;
+    }
+    // Attempt parsing if it is a full date string
+    try {
+      var d = new Date(str);
+      if (!isNaN(d.getTime())) {
+        return Utilities.formatDate(d, timezone, "yyyy-MM-dd");
+      }
+    } catch (e) {}
+    return str;
+  }
   
   // Skip the header row (i = 1)
   if (rows && rows.length > 1) {
     for (var i = 1; i < rows.length; i++) {
-      var dateKey = rows[i][0];
+      var rawDateKey = rows[i][0];
+      var dateKey = formatDateKey(rawDateKey);
+      
       var diary = rows[i][1];
       var one = rows[i][2];
       var two = rows[i][3];
@@ -59,10 +82,10 @@ function doGet(e) {
         data[dateKey] = { 
           notes: notes ? String(notes) : "", 
           checkboxes: {
-            diary: diary === 1 || diary === true,
-            one: one === 1 || one === true,
-            two: two === 1 || two === true,
-            thought: thought === 1 || thought === true
+            diary: diary === 1 || diary === true || diary === "1",
+            one: one === 1 || one === true || one === "1",
+            two: two === 1 || two === true || two === "1",
+            thought: thought === 1 || thought === true || thought === "1"
           }
         };
       }

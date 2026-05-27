@@ -6,7 +6,7 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     // Google Sheets Cloud API URL
-    const SHEET_URL = "https://script.google.com/macros/s/AKfycbwwYba9NdUjEd3selhJCPpMzORktv8Y7tuxC5YZCSmug7C-Zv0CatLobOyKRGFlgrGQ/exec";
+    const SHEET_URL = "https://script.google.com/macros/s/AKfycbxedLGmW4wlTWszTqUE9N1fm_K7pgRJ6ukDHRSANg4k2vX300NgTM2yfYK2ryFBPc-E/exec";
 
     // ==========================================================================
     // State Variables
@@ -96,7 +96,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error("Apps Script Error: " + cloudData.error);
             }
 
-            calendarData = cloudData || {};
+            // Normalize cloud data date keys to YYYY-MM-DD
+            const normalizedData = {};
+            if (cloudData) {
+                for (const key in cloudData) {
+                    if (cloudData.hasOwnProperty(key)) {
+                        let normalizedKey = key;
+                        // If key is not in YYYY-MM-DD format (e.g. "Sun May 03 2026..."), normalize it
+                        if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) {
+                            try {
+                                const d = new Date(key);
+                                if (!isNaN(d.getTime())) {
+                                    const yyyy = d.getFullYear();
+                                    const mm = String(d.getMonth() + 1).padStart(2, '0');
+                                    const dd = String(d.getDate()).padStart(2, '0');
+                                    normalizedKey = `${yyyy}-${mm}-${dd}`;
+                                }
+                            } catch (err) {
+                                console.error('Failed to parse date key:', key, err);
+                            }
+                        }
+                        normalizedData[normalizedKey] = cloudData[key];
+                    }
+                }
+            }
+
+            calendarData = normalizedData;
 
             if (statusText) statusText.textContent = "Database: Cloud (Google Sheets)";
         } catch (e) {
